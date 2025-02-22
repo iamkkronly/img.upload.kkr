@@ -3,23 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>4K Image Enhancer</title>
+    <title>Basic 4K Image Upscaler</title>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
-        img { max-width: 100%; margin-top: 20px; }
+        img, canvas { max-width: 100%; margin-top: 20px; }
         button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
     </style>
 </head>
 <body>
-    <h1>Enhance Your Photo to 4K</h1>
-    <form action="#" method="post" enctype="multipart/form-data">
-        <input type="file" name="image" accept="image/*">
-        <button type="submit">Enhance Image</button>
-    </form>
+    <h1>Basic 4K Image Upscaler</h1>
+    <input type="file" id="fileInput" accept="image/*">
+    <button onclick="enhanceImage()">Enhance Image</button>
     <br>
     <h2>Original Image</h2>
-    <img src="#" alt="Uploaded Image" id="originalImage">
-    <h2>Enhanced Image</h2>
-    <img src="#" alt="Enhanced Image" id="enhancedImage">
+    <canvas id="originalCanvas"></canvas>
+    <h2>Upscaled Image (4K)</h2>
+    <canvas id="enhancedCanvas"></canvas>
+
+    <script>
+        document.getElementById("fileInput").addEventListener("change", function(event) {
+            let file = event.target.files[0];
+            if (file) {
+                let reader = new FileReader();
+                reader.onload = function(e) {
+                    let img = new Image();
+                    img.onload = function() {
+                        let canvas = document.getElementById("originalCanvas");
+                        let ctx = canvas.getContext("2d");
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        ctx.drawImage(img, 0, 0);
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function enhanceImage() {
+            let originalCanvas = document.getElementById("originalCanvas");
+            let enhancedCanvas = document.getElementById("enhancedCanvas");
+            let ctx = enhancedCanvas.getContext("2d");
+
+            // Set 4K resolution (3840x2160) or 2x original size
+            let newWidth = originalCanvas.width * 2;
+            let newHeight = originalCanvas.height * 2;
+
+            enhancedCanvas.width = newWidth;
+            enhancedCanvas.height = newHeight;
+
+            // Draw the image at higher resolution
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = "high";
+            ctx.drawImage(originalCanvas, 0, 0, newWidth, newHeight);
+        }
+    </script>
 </body>
 </html>
