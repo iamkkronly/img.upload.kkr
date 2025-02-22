@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4K Image Enhancer (Offline)</title>
+    <script src="https://cdn.jsdelivr.net/npm/opencv.js"></script> 
+    <script src="https://cdn.jsdelivr.net/npm/tensorflow/tf.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+        img { max-width: 100%; margin-top: 20px; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Enhance Your Photo to 4K (Offline)</h1>
+    <input type="file" id="fileInput" accept="image/*">
+    <button onclick="enhanceImage()">Enhance Image</button>
+    <br>
+    <h2>Original Image</h2>
+    <canvas id="originalCanvas"></canvas>
+    <h2>Enhanced Image</h2>
+    <canvas id="enhancedCanvas"></canvas>
+
+    <script>
+        let model;
+
+        async function loadModel() {
+            model = await tf.loadGraphModel('models/real-esrgan/model.json');
+            console.log("Model Loaded");
+        }
+
+        document.getElementById("fileInput").addEventListener("change", function(event) {
+            let file = event.target.files[0];
+            if (file) {
+                let reader = new FileReader();
+                reader.onload = function(e) {
+                    let img = new Image();
+                    img.onload = function() {
+                        let canvas = document.getElementById("originalCanvas");
+                        let ctx = canvas.getContext("2d");
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        ctx.drawImage(img, 0, 0);
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        async function enhanceImage() {
+            if (!model) {
+                alert("Model is still loading...");
+                return;
+            }
+
+            let canvas = document.getElementById("originalCanvas");
+            let ctx = canvas.getContext("2d");
+            let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            let inputTensor = tf.browser.fromPixels(imgData).toFloat().div(tf.scalar(255)).expandDims(0);
+
+            let outputTensor = model.execute(inputTensor);
+            let outputData = outputTensor.squeeze().mul(255).toInt().arraySync();
+
+            let outputCanvas = document.getElementById("enhancedCanvas");
+            outputCanvas.width = outputData[0].length;
+            outputCanvas.height = outputData.length;
+            let outputCtx = outputCanvas.getContext("2d");
+            let outputImageData = outputCtx.createImageData(outputCanvas.width, outputCanvas.height);
+
+            let index = 0;
+            for (let i = 0; i < outputData.length; i++) {
+                for (let j = 0; j < outputData[i].length; j++) {
+                    let pixel = outputData[i][j];
+                    outputImageData.data[index++] = pixel[0]; // R
+                    outputImageData.data[index++] = pixel[1]; // G
+                    outputImageData.data[index++] = pixel[2]; // B
+                    outputImageData.data[index++] = 255; // A
+                }
+            }
+
+            outputCtx.putImageData(outputImageData, 0, 0);
+        }
+
+        loadModel();
+    </script>
+</body>
+</html>
